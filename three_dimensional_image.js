@@ -1,7 +1,6 @@
 /**
- * 3d-images.js
- * Add data attribute data-type="3d-sbs" to any image on the page
- * and load this file. It'll be awesome.
+ * threeDimensionalImage class, usage:
+ * image = new threeDimensionalImage(document.querySelector("img#my-3d-image"));
  */
 
 var threeDimensionalImage = (function() {
@@ -86,16 +85,3 @@ var threeDimensionalImage = (function() {
 
   return threeDimensionalImage;
 })();
-
-var imageObjects = [];
-
-window.addEventListener("load", function(event) {
-
-  // Let's get started!
-  var images = document.querySelectorAll("img[data-type='3d-sbs']");
-
-  Array.prototype.forEach.call(images, function(el, i){
-    imageObjects.push(new threeDimensionalImage(el));
-  });
-
-});
