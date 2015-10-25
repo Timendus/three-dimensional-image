@@ -4,16 +4,35 @@
  * and load this file. It'll be awesome.
  */
 
-window.addEventListener("load", function(event) {
+var threeDimensionalImage = (function() {
 
   var settings = {
     flip_eyes: false
   };
 
+  function threeDimensionalImage(image) {
+    // Get interlaced images
+    var normal_canvas  = this.interlaced_canvas_for_image(image,  settings.flip_eyes);
+    var flipped_canvas = this.interlaced_canvas_for_image(image, !settings.flip_eyes);
+
+    // Add the scroll event listener for this image
+    window.addEventListener("scroll", (function(_this) {
+      return function() {
+        return _this.show_the_right_eye(normal_canvas, flipped_canvas);
+      };
+    })(this));
+
+    // Replace image with our canvases
+    image.style.display = 'none';
+    this.show_the_right_eye(normal_canvas, flipped_canvas);
+    image.parentElement.insertBefore(normal_canvas, image);
+    image.parentElement.insertBefore(flipped_canvas, image);
+  };
+
   /**
    * Create an interlaced image on a canvas from this side by side image
    */
-  var interlaced_canvas_for_image = function(image, flip_eyes) {
+  threeDimensionalImage.prototype.interlaced_canvas_for_image = function(image, flip_eyes) {
     // Determine image size (on the page and as a file)
     var new_width    = image.width;
     var new_height   = image.height * 2;
@@ -44,7 +63,7 @@ window.addEventListener("load", function(event) {
    * Show either the normal or the flipped version, depending on
    * scroll position
    */
-  var show_the_right_eye = function(canvas_a, canvas_b) {
+  threeDimensionalImage.prototype.show_the_right_eye = function(canvas_a, canvas_b) {
     if ( document.body.scrollTop % 2 == 0 ) {
       canvas_a.style.display = 'none';
       canvas_b.style.display = 'initial';
@@ -52,26 +71,18 @@ window.addEventListener("load", function(event) {
       canvas_a.style.display = 'initial';
       canvas_b.style.display = 'none';
     }
-  }
+  };
+
+  return threeDimensionalImage;
+})();
+
+window.addEventListener("load", function(event) {
 
   // Let's get started!
   var images = document.querySelectorAll("img[data-type='3d-sbs']");
 
   Array.prototype.forEach.call(images, function(el, i){
-    // Get interlaced images
-    var normal_canvas  = interlaced_canvas_for_image(el, settings.flip_eyes);
-    var flipped_canvas = interlaced_canvas_for_image(el, !settings.flip_eyes);
-
-    // Add the scroll event listener for this image
-    window.addEventListener("scroll", function(event) {
-      show_the_right_eye(normal_canvas, flipped_canvas);
-    });
-
-    // Replace image with our canvases
-    el.style.display = 'none';
-    show_the_right_eye(normal_canvas, flipped_canvas);
-    el.parentElement.insertBefore(normal_canvas, el);
-    el.parentElement.insertBefore(flipped_canvas, el);
+    new threeDimensionalImage(el);
   });
 
 });
