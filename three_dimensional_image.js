@@ -1,12 +1,19 @@
 /**
- * threeDimensionalImage class, usage:
- * image = new threeDimensionalImage(document.querySelector("img#my-3d-image"));
+ * Replace a side-by-side 3D image on the page with a combined 3D version,
+ * either using anaglyph (red-cyan) or interlaced rows.
+ *
+ * Usage:
+ *   image = new threeDimensionalImage(document.querySelector("img#my-3d-image"));
+ *
+ * To undo:
+ *   image.dismiss();
  */
 
 var threeDimensionalImage = (function() {
 
   var settings = {
-    flip_eyes: false
+    method:     'interlaced',
+    flip_eyes:  false
   };
 
   function threeDimensionalImage(image) {
@@ -17,9 +24,73 @@ var threeDimensionalImage = (function() {
     this.real_width  = image.naturalWidth / 2;
     this.real_height = image.naturalHeight;
 
+    switch(settings.method) {
+      case 'anaglyph':
+        this.create_anaglyph_image();
+        break;
+      case 'interlaced':
+        this.create_interlaced_image();
+        break;
+    }
+
+  };
+
+  /**
+   * Create an anaglyph image to replace the input image
+   */
+  threeDimensionalImage.prototype.create_anaglyph_image = function() {
+
+    // Create anaglyph image using CSS
+    this.normal_canvas = document.createElement("div");
+    this.apply_style(this.normal_canvas, {
+      'position':              'relative',
+      'width':                 this.width,
+      'height':                this.height,
+      'z-index':               1,
+      'background':            'url("'+this.image.getAttribute('src')+'"), cyan',
+      'background-blend-mode': 'lighten',
+      'background-size':       'cover'
+    });
+
+    this.flipped_canvas = document.createElement("div");
+    this.apply_style(this.flipped_canvas, {
+      'margin':                '0px',
+      'position':              'absolute',
+      'width':                 this.width,
+      'height':                this.height,
+      'z-index':               2,
+      'background':            'url("'+this.image.getAttribute('src')+'"), red',
+      'background-blend-mode': 'lighten',
+      'background-size':       'cover',
+      'background-position':   'right',
+      'mix-blend-mode':        'darken',
+    });
+
+    this.normal_canvas.appendChild(this.flipped_canvas);
+    this.normal_canvas.className = "threeDimensionalImage";
+
+    // Replace image with anaglyph image
+    this.image.style.display = 'none';
+    this.image.parentElement.insertBefore(this.normal_canvas, this.image);
+
+  };
+
+  /**
+   * Apply multiple styles at once to an element
+   */
+  threeDimensionalImage.prototype.apply_style = function(element, style) {
+    for (var property in style)
+      element.style[property] = style[property];
+  };
+
+  /**
+   * Create an interlaced representation to replace the input image
+   */
+  threeDimensionalImage.prototype.create_interlaced_image = function() {
+
     // Get interlaced images
-    this.normal_canvas  = this.interlaced_canvas_for_image(image,  settings.flip_eyes);
-    this.flipped_canvas = this.interlaced_canvas_for_image(image, !settings.flip_eyes);
+    this.normal_canvas  = this.interlaced_canvas_for_image(this.image,  settings.flip_eyes);
+    this.flipped_canvas = this.interlaced_canvas_for_image(this.image, !settings.flip_eyes);
 
     // Add the scroll event listener for this image
     window.addEventListener("scroll", (function(_this) {
@@ -29,10 +100,11 @@ var threeDimensionalImage = (function() {
     })(this));
 
     // Replace image with our canvases
-    image.style.display = 'none';
+    this.image.style.display = 'none';
     this.show_the_right_eye();
-    image.parentElement.insertBefore(this.normal_canvas, image);
-    image.parentElement.insertBefore(this.flipped_canvas, image);
+    this.image.parentElement.insertBefore(this.normal_canvas,  this.image);
+    this.image.parentElement.insertBefore(this.flipped_canvas, this.image);
+
   };
 
   /**
@@ -41,9 +113,10 @@ var threeDimensionalImage = (function() {
   threeDimensionalImage.prototype.interlaced_canvas_for_image = function(image, flip_eyes) {
 
     // Create canvas for interlaced image
-    var canvas    = document.createElement("canvas");
-    canvas.width  = this.width;
-    canvas.height = this.height;
+    var canvas       = document.createElement("canvas");
+    canvas.className = "threeDimensionalImage";
+    canvas.width     = this.width;
+    canvas.height    = this.height;
 
     // Draw the first eye
     var context = canvas.getContext("2d");
@@ -62,7 +135,8 @@ var threeDimensionalImage = (function() {
 
   /**
    * Show either the normal or the flipped version, depending on
-   * scroll position. This needs to take the image position into account :/
+   * scroll position. TODO: This needs to take the image position
+   * on the page into account :/
    */
   threeDimensionalImage.prototype.show_the_right_eye = function() {
     if ( document.body.scrollTop % 2 == 0 ) {
